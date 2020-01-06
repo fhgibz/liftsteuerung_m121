@@ -27,6 +27,7 @@ typedef enum
 {
 	Message_MoveTo = 1,	
 	Message_PosChanged = 2,
+	Message_ElevatorReady = 3,
 } AppMessages;
 
 /** 
