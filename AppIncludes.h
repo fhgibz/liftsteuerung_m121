@@ -9,6 +9,7 @@
 #ifndef APPINCLUDES_H_
 #define APPINCLUDES_H_
 #include "LiftLibrary.h"
+#include "LiftSimulationCommon.h"
 
 /** 
 * Signature der  Test Function
@@ -28,6 +29,11 @@ typedef enum
 	Message_MoveTo = 1,	
 	Message_PosChanged = 2,
 	Message_ElevatorReady = 3,
+	CloseDoor = 4,
+	AwaitDoorClosed = 5,
+	DoorIsClosed = 6,
+	SetDoorOpenTimer = 7,
+	OpenDoor = 8,
 } AppMessages;
 
 /** 
