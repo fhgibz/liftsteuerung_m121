@@ -34,6 +34,7 @@ typedef enum
 	DoorIsClosed = 6,
 	SetDoorOpenTimer = 7,
 	OpenDoor = 8,
+	EmergencyStop = 9,
 } AppMessages;
 
 /** 

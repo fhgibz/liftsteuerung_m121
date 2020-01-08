@@ -30,6 +30,11 @@ void MotorCtrl_Initializing(Message* msg)
 {
 	if( msg->Id == LiftStarted)
 	{
+		SetDoorState(DoorClosed, Floor0);
+		SetDoorState(DoorClosed, Floor1);
+		SetDoorState(DoorClosed, Floor2);
+		SetDoorState(DoorClosed, Floor3);
+		
 		CalibrateElevatorPosition(NotifyCalibrationDone);
 		return;
 	}
@@ -49,27 +54,36 @@ void OnElevatorPositionChanged(uint8_t currentPos, uint8_t targetPos)
 
 void MotorCtrl_Stopped(Message* msg)
 {
-	if(msg->Id == CloseDoor){
-		_motorCtrl.start = (FloorType)msg->MsgParamHigh;
+	if( msg->Id == Message_MoveTo && msg->MsgParamLow < 4)
+	{
 		_motorCtrl.target = (FloorType)msg->MsgParamLow;
-		SetDoorState(DoorClosed, _motorCtrl.start);
-		SendEvent(SignalSourceApp, DoorIsClosed, _motorCtrl.target, _motorCtrl.start);
+		_motorCtrl.start = (FloorType)msg->MsgParamHigh;
+		SetState(&_motorCtrl.fsm, MotorCtrl_Moving);
+		MoveElevator(_motorCtrl.target * POS_STEPS_PER_FLOOR, OnElevatorPositionChanged );
+		//Set Speed Depending on Distance
+		int distance = _motorCtrl.target - _motorCtrl.start;
+		
+		if(distance == 3 || distance == -3){
+			SetElevatorSpeed(SpeedType.VeryFast);
+		}
+		if(distance == 2 || distance == -2){
+			SetElevatorSpeed(SpeedType.Fast);
+		}
+		if(distance == 1 || distance == -1){
+			SetElevatorSpeed(SpeedType.Medium);
+		}
 	}
 	
 	if(msg->Id == OpenDoor){
 		_motorCtrl.start = (FloorType)msg->MsgParamLow;
 		SetDoorState(DoorOpen, _motorCtrl.start);
-		SendEvent(SignalSourceApp, SetDoorOpenTimer, _motorCtrl.target, 0);
-		
 	}
 	
-	if( msg->Id == Message_MoveTo && msg->MsgParamLow < 4)
-	{
-		_motorCtrl.target = (FloorType)msg->MsgParamLow;
-		SetState(&_motorCtrl.fsm, MotorCtrl_Moving);
-		MoveElevator(_motorCtrl.target * POS_STEPS_PER_FLOOR, OnElevatorPositionChanged );
-		//ToDO Acceleration Logic goes here
+	if(msg->Id == CloseDoor){
+		_motorCtrl.start = (FloorType)msg->MsgParamLow;
+		SetDoorState(DoorClosed, _motorCtrl.start);
 	}
+	
 }
 
 

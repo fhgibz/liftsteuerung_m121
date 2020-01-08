@@ -29,6 +29,7 @@ void MainCtrl_AwaitTargetSelection(Message* msg);
 void MainCtrl_ElevatorMoving(Message* msg);
 void MainCtrl_ElevatorHasArrived(Message* msg);
 void MainCtrl_DoorIsOpen(Message* msg);
+void MainCtrl_CheckingScheduler(Message* msg);
 
 Boolean Enqueue(FloorType floor);
 Boolean Dequeue(FloorType* floor);
@@ -66,11 +67,6 @@ void SysState_Initializing(Message* msg){
 		ClrIndicatorFloorState(Floor2);
 		ClrIndicatorFloorState(Floor3);
 		
-		SetDoorState(DoorClosed, Floor0);
-		SetDoorState(DoorClosed, Floor1);
-		SetDoorState(DoorClosed, Floor2);
-		SetDoorState(DoorClosed, Floor3);
-		
 		SetState(&_mainCtrl.fsm, MainCtrl_Initializing);
 	}
 }
@@ -82,18 +78,24 @@ void MainCtrl_Initializing(Message* msg)
 	if( msg->Id == LiftCalibrated)
 	{
 		_mainCtrl.currentFloor = Floor0;
+		SetState(&_mainCtrl.fsm, MainCtrl_CheckingScheduler)
 		return;
 	}
+}
+
+void MainCtrl_CheckingScheduler(Message* msg){
 	if( msg->Id == Message_ElevatorReady)
 	{
 		EnableStatusUpdate = true;
+		
 		//ToDo Scheduler abfragen ob etwas darin vorhanden ist (false) ersetzen
 		if(false){
+			
 			//ToDo das nächste Stockwerk aus dem Scheduler im _mainCtrl.nextFloor speichern, wird dann abgearbeitet
 			
 			//Check ob Türe geschlossen ist vor Abfahrt
-			SendEvent(SignalSourceApp, CloseDoor, _mainCtrl.nextFloor, _mainCtrl.currentFloor);
-			SetState(&_mainCtrl.fsm, MainCtrl_AwaitDoorClosed);
+			SendEvent(SignalSourceApp, Message_MoveTo, _mainCtrl.nextFloor, _mainCtrl.currentFloor);
+			SetState(&_mainCtrl.fsm, MainCtrl_ElevatorHasArrived);
 			return;
 		}
 		
@@ -101,48 +103,6 @@ void MainCtrl_Initializing(Message* msg)
 		return;
 	}
 }
-
-void MainCtrl_AwaitDoorClosed(Message* msg){
-	//Nachdem die Türe geschlossen ist kann der Lift abfahren
-	if(msg->Id == DoorIsClosed){
-		_mainCtrl.currentFloor = (FloorType)msg->MsgParamHigh;
-		_mainCtrl.nextFloor = (FloorType)msg->MsgParamLow;
-		SendEvent(SignalSourceApp, Message_MoveTo, _mainCtrl.nextFloor, _mainCtrl.currentFloor);
-		SetState(&_mainCtrl.fsm, MainCtrl_ElevatorHasArrived);
-	}
-}
-
-void MainCtrl_ElevatorHasArrived(Message* msg){
-	//Nachdem der Lift am Ziel Ort angekommen ist wird der Timer für die offene Türe gesetzt
-	if(msg->Id == SetDoorOpenTimer){
-		_mainCtrl.currentFloor = (FloorType)msg->MsgParamLow;
-		//SetDoorState(DoorOpen, _mainCtrl.currentFloor);
-		SendEvent(SignalSourceApp, OpenDoor, _mainCtrl.currentFloor, 0);
-		_mainCtrl.timer = StartTimer(5000);
-		SetState(&_mainCtrl.fsm, MainCtrl_DoorIsOpen);
-	}
-}
-
-void MainCtrl_DoorIsOpen(Message* msg){
-	//Wenn Türe offen ist und jemand den gleichen Knopf drückt wie den currentFloor, öffnet sich die Tür wieder
-	if( IS_BUTTON_PRESS (msg)){
-		if(IS_RESERVATION(msg->MsgParamLow)){
-			FloorType reservation = GetFloorReservation(msg->MsgParamLow);
-			SendEvent(SignalSourceApp, OpenDoor, reservation, 0);
-			SetState(&_mainCtrl.fsm, MainCtrl_ElevatorHasArrived);
-		}
-	}
-	
-	//Wenn der Timer für die offene Tür ablauft
-	if( msg->Id == TimerEvent )
-	{
-		Usart_PutChar(0xA1);
-		Usart_PutChar(_mainCtrl.currentFloor);
-		SendEvent(SignalSourceApp, CloseDoor, _mainCtrl.nextFloor, _mainCtrl.currentFloor);
-		SetState(&_mainCtrl.fsm, MainCtrl_AwaitDoorClosed);
-	}
-}
-
 
 void MainCtrl_AwaitElevatorRequest(Message* msg)
 {
@@ -158,55 +118,47 @@ void MainCtrl_AwaitElevatorRequest(Message* msg)
 			{
 				//ToDo: Reservations (Wenn jemand den Lift bestellt) in den Scheduler einfügen
 				//ToDo: Nächsten reserviertes Stockwerk aus dem Scheduler rausholen und in _main.Ctrl.NextFloor übergeben
-				
-				_mainCtrl.nextFloor = reservation;
-				//SendEvent(SignalSourceApp, AwaitDoorClosed, _mainCtrl.nextFloor, 0);
-			}
-			//ToDo diese Logik ausbauen in anderen State (Türe wieder öffnen falls auf dem gleichen Stock)
-			else if( reservation == _mainCtrl.currentFloor)
-			{
-				SetDoorState(DoorOpen, _mainCtrl.currentFloor);
-				//SendEvent(SignalSourceApp, )
-				_mainCtrl.timer = StartTimer(5000);
 			}
 		}
 	}
-	if( msg->Id == TimerEvent )
-	{
-		Usart_PutChar(0xA1);
-		Usart_PutChar(_mainCtrl.currentFloor);
-		SetDoorState(DoorClosed, _mainCtrl.currentFloor);
-	}
 	
-	if( msg->Id == Message_PosChanged)
-	{
-		if( msg->MsgParamHigh == msg->MsgParamLow)
-		{
-			_mainCtrl.currentFloor = msg->MsgParamHigh/POS_STEPS_PER_FLOOR;
+	if(msg->Id == DoorEmergencyBreak){
+		SetState(&_mainCtrl, MainCtrl_Initializing);
+		SendEvent(SignalSourceApp, LiftStarted, 0, 0);
+		
+	}
+}
+
+void MainCtrl_ElevatorHasArrived(Message* msg){
+	//Nachdem der Lift am Ziel Ort angekommen ist wird der Timer für die offene Türe gesetzt
+	if(msg->Id == SetDoorOpenTimer){
+		_mainCtrl.currentFloor = (FloorType)msg->MsgParamLow;
+		SendEvent(SignalSourceApp, OpenDoor, _mainCtrl.currentFloor, 0);
+		_mainCtrl.timer = StartTimer(5000);
+		SetState(&_mainCtrl.fsm, MainCtrl_DoorIsOpen);
+	}
+}
+
+void MainCtrl_DoorIsOpen(Message* msg){
+	//Wenn Türe offen ist und jemand den gleichen Knopf drückt wie den currentFloor, öffnet sich die Tür wieder
+	if( IS_BUTTON_PRESS (msg)){
+		if(IS_RESERVATION(msg->MsgParamLow)){
+			FloorType reservation = GetFloorReservation(msg->MsgParamLow);
+			SendEvent(SignalSourceApp, OpenDoor, reservation, 0);
 			_mainCtrl.timer = StartTimer(5000);
 		}
 	}
-}
-
-
-
-void MainCtrl_AwaitTargetSelection(Message* msg)
-{
-	Usart_PutChar(0xB0);
-	Usart_PutChar(msg->Id);
 	
-	// TODO: was soll hier passieren
+	//Wenn der Timer für die offene Tür ablauft
+	if( msg->Id == TimerEvent )
+	{
+		_mainCtrl.timer = StopTimer();
+		Usart_PutChar(0xA1);
+		Usart_PutChar(_mainCtrl.currentFloor);
+		SendEvent(SignalSourceApp, CloseDoor, _mainCtrl.currentFloor, 0);
+		SetState(&_mainCtrl.fsm, MainCtrl_CheckingScheduler);
+	}
 }
-
-void MainCtrl_ElevatorMoving(Message* msg)
-{
-	Usart_PutChar(0xC0);
-	Usart_PutChar(msg->Id);
-	
-	// TODO: was soll hier passieren
-}
-
-
 
 FloorType GetFloorReservation(uint8_t buttonEventParameter )
 {
