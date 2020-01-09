@@ -89,9 +89,28 @@ void MainCtrl_CheckingScheduler(Message* msg){
 		EnableStatusUpdate = true;
 		
 		//ToDo Scheduler abfragen ob etwas darin vorhanden ist (false) ersetzen
-		if(false){
+		if(_mainCtrl.nextFloor != NULL){
 			
 			//ToDo das nächste Stockwerk aus dem Scheduler im _mainCtrl.nextFloor speichern, wird dann abgearbeitet
+			// Comment von Flo: Ich glaube ist schon bei MainCtrl_AwaitElevatorRequest passiert, muss hier nicht nochmals gemacht werden
+			
+			// floorCalled zurücksetzen
+			if(_mainCtrl.nextFloor = 0) {
+				_mainCtrl.floor1Called = false;
+			}
+			else if(_mainCtrl.nextFloor = 1) {
+				_mainCtrl.floor2Called = false;
+			}
+			else if(_mainCtrl.nextFloor = 2) {
+				_mainCtrl.floor3Called = false;
+			}
+			else if(_mainCtrl.nextFloor = 3) {
+				_mainCtrl.floor4Called = false;
+			}
+			
+			else{
+				
+			}
 			
 			//Check ob Türe geschlossen ist vor Abfahrt
 			SendEvent(SignalSourceApp, Message_MoveTo, _mainCtrl.nextFloor, _mainCtrl.currentFloor);
@@ -117,7 +136,88 @@ void MainCtrl_AwaitElevatorRequest(Message* msg)
 			if( reservation != _mainCtrl.currentFloor )
 			{
 				//ToDo: Reservations (Wenn jemand den Lift bestellt) in den Scheduler einfügen
-				//ToDo: Nächsten reserviertes Stockwerk aus dem Scheduler rausholen und in _main.Ctrl.NextFloor übergeben
+				
+				if (_mainCtrl.elevatorGoingUp == NULL){
+					_mainCtrl.elevatorGoingUp = true;
+				}
+				
+				if(reservation = 0) {
+					_mainCtrl.floor1Called = true;
+				}
+				else if(reservation = 1) {
+					_mainCtrl.floor2Called = true;
+				}
+				else if(reservation = 2) {
+					_mainCtrl.floor3Called = true;
+				}
+				else if(reservation = 3) {
+					_mainCtrl.floor4Called = true;
+				}
+				
+				//Scheduler Logik
+				if(_mainCtrl.elevatorGoingUp == true){
+					int theFloor = _mainCtrl.currentFloor;
+					while(theFloor + 1 < 5){
+						switch(theFloor) {
+							case 1:
+								if(_mainCtrl.floor2Called == true){
+									_mainCtrl.nextFloor = 1;
+									theFloor = 5;
+									}; break;
+							case 2:
+								if(_mainCtrl.floor3Called == true){
+									_mainCtrl.nextFloor = 2;
+									theFloor = 5;
+								}; break;
+							case 3:
+								if(_mainCtrl.floor4Called == true){
+									_mainCtrl.nextFloor = 3;
+									theFloor = 5;
+								}; break;
+							case 4:
+								_mainCtrl.elevatorGoingUp = false;
+								if(_mainCtrl.floor3Called == true){
+									_mainCtrl.nextFloor = 2;
+									theFloor = 5;
+								}; break;
+							default: _mainCtrl.nextFloor = 0; break;
+						}
+						theFloor = theFloor + 1;
+					}
+				}
+				if (_mainCtrl.elevatorGoingUp == false){
+					int theFloor = _mainCtrl.currentFloor;
+					while(theFloor - 1 > -2){
+						switch(theFloor) {
+							case 2:
+							if(_mainCtrl.floor3Called == true){
+								_mainCtrl.nextFloor = 2;
+								theFloor = -2;
+							}; break;
+							case 1:
+							if(_mainCtrl.floor2Called == true){
+								_mainCtrl.nextFloor = 1;
+								theFloor = -2;
+							}; break;
+							case 0:
+							if(_mainCtrl.floor1Called == true){
+								_mainCtrl.nextFloor = 0;
+								theFloor = -2;
+							}; break;
+							case -1:
+							_mainCtrl.elevatorGoingUp = true;
+							if(_mainCtrl.floor2Called == true){
+								_mainCtrl.nextFloor = 1;
+								theFloor = -2;
+							}; break;
+							default: _mainCtrl.nextFloor = 0; break;
+						}
+						theFloor = theFloor - 1;
+					}
+				}
+				
+				//ToDo: Nächstes reserviertes Stockwerk aus dem Scheduler rausholen und in _main.Ctrl.NextFloor übergeben
+				// wurde oben in Scheduler Logik schon gemacht
 			}
 		}
 	}
