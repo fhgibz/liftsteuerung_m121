@@ -144,8 +144,10 @@ void MainCtrl_DoorIsOpen(Message* msg){
 	if( IS_BUTTON_PRESS (msg)){
 		if(IS_RESERVATION(msg->MsgParamLow)){
 			FloorType reservation = GetFloorReservation(msg->MsgParamLow);
-			SendEvent(SignalSourceApp, OpenDoor, reservation, 0);
-			_mainCtrl.timer = StartTimer(5000);
+			if( reservation == _mainCtrl.currentFloor ){
+				SendEvent(SignalSourceApp, OpenDoor, reservation, 0);
+				_mainCtrl.timer = StartTimer(5000);
+			}
 		}
 	}
 	
