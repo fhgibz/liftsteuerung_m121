@@ -17,6 +17,11 @@ typedef struct MainCtrl_tag
 	FloorType ElevatorNextPosQ[4];
 	uint8_t qIn;
 	uint8_t qOut;
+	bool floor1Called;
+	bool floor2Called;
+	bool floor3Called;
+	bool floor4Called;
+	bool elevatorGoingUp;
 }MainCtrl;
 
 extern MainCtrl _mainCtrl;
