@@ -101,6 +101,7 @@ void MainCtrl_CheckingScheduler(Message* msg){
 			else if(_mainCtrl.nextFloor = 1) {
 				_mainCtrl.floor2Called = false;
 			}
+			gekos
 			else if(_mainCtrl.nextFloor = 2) {
 				_mainCtrl.floor3Called = false;
 			}
@@ -180,7 +181,9 @@ void MainCtrl_AwaitElevatorRequest(Message* msg)
 									_mainCtrl.nextFloor = 2;
 									theFloor = 5;
 								}; break;
-							default: _mainCtrl.nextFloor = 0; break;
+							default: _mainCtrl.nextFloor = _mainCtrl.currentFloor;
+								theFloor = 5;							
+							break;
 						}
 						theFloor = theFloor + 1;
 					}
@@ -210,7 +213,9 @@ void MainCtrl_AwaitElevatorRequest(Message* msg)
 								_mainCtrl.nextFloor = 1;
 								theFloor = -2;
 							}; break;
-							default: _mainCtrl.nextFloor = 0; break;
+							default: _mainCtrl.nextFloor = _mainCtrl.currentFloor;
+							theFloor = -2;							
+							break;
 						}
 						theFloor = theFloor - 1;
 					}
