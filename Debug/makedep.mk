@@ -8,5 +8,7 @@ MainController.c
 
 MotorCtrl.c
 
+ScheduleController.c
+
 TestController.c
 

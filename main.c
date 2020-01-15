@@ -23,7 +23,9 @@ int main(void)
 	RegisterTestHandler( TestFunction );
 	RegisterFsm(&_motorCtrl.fsm);
 	RegisterFsm(&_mainCtrl.fsm);
+	registerScheduler();
 	// letzte Funktion die aufgerufen wird!
+	EnableStatusUpdate = true;
 	InitializeStart();
 }
 

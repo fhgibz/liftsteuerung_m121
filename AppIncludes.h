@@ -35,6 +35,8 @@ typedef enum
 	SetDoorOpenTimer = 7,
 	OpenDoor = 8,
 	EmergencyStop = 9,
+	GetNextFloor = 10,
+	RequestPending = 11,
 } AppMessages;
 
 /** 
@@ -43,6 +45,8 @@ typedef enum
 void MotorCtrl_Initializing(Message* msg);
 void MotorCtrl_Stopped(Message* msg);
 void MotorCtrl_Moving(Message* msg);
+
+void registerScheduler(void);
 
 /** 
 * @brief Struktur für den Motor-Controller
